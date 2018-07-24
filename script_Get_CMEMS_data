@@ -1,0 +1,103 @@
+#!/bin/bash
+#
+#-------------------------------- README if first use--------------------------------#
+#
+#  To use this script you need:
+# - an account on MyOcean Copernicus 
+# - python 2.7 
+# - the motu-client-python script that you can download from MyOcean
+#  
+# The script need a login, a pass to MyOcean, Paths to python and motu-client.py
+# 
+# Then you enter the longitude and latitude (min,max)
+# the name of the field you extract
+# The you give the staring date and the end date (give the same for a single file transfert
+#
+# The download-command below extrat data from "database$field",
+# from surface to bottom ("-z 0.494 -Z 5727.9171")
+# for the variable u, v, T, S and ssh ("-v v -v u -v salinity -v ssh -v temperature")
+# you may want to change some of those option if needed.
+#
+
+
+# MyOcean usr login
+ usr=""
+
+# MyOcean usr pass 
+ pass=""
+
+# Which Python?
+# Pyexe="/home/alex/anaconda2/bin/python"
+# Motu_client="/home/alex/anaconda2/motu-client/"
+
+#--- Geographical zone ---#
+  Lon_min="-6."
+  Lon_max="36"
+  Lat_min="30"
+  Lat_max="46."
+
+#--- Data field ---#
+  field="OCEANCOLOUR_MED_CHL_L4_REP_OBSERVATIONS_009_078-TDS"
+
+#--- Date of the data you want ---#
+  # hour... to 12h in order to get the only 1 file a day
+  # may differ for different kind of file and so the script could be
+  # needed to be adjust in the command line below 
+  hour1="00:00:00"
+  hour2="00:00:00"
+
+  # Start Date
+  yy_begin="1997"
+  mm_begin="09"
+  dd_begin="01"
+ 
+  date_begin=$yy_begin$mm_begin$dd_begin
+  date=`date +%Y%m%d -d "$date_begin + 0 days"`
+
+  # End Date
+  yy_end="2013"
+  mm_end="07"
+  dd_end="01"
+
+  date_end=$yy_end$mm_end$dd_end
+
+  # feel free to translate in english if you like! :)
+  echo 'Téléchargement des fichiers de la date '$date_begin' à la date '$date_end > script_OC-CCI_DL_from_CMEMS.log
+
+# Interation over dates 
+
+  nb=0 
+
+     while [ $date -ne $date_end ]  ; do 
+     date=`date +%Y%m%d -d "$date_begin + $nb months"`
+     date_file=`date +%Y-%m-%d -d "$date_begin + $nb months"`
+     echo $date_file >> script_OC-CCI_DL_from_CMEMS.log
+     ((nb++))
+
+  #--- output file name ---#
+  file_out="OC-CCI_CMEMS_L4_"$date".nc" 
+  echo "on regarde le fichier : " $file_out
+
+  # testing if the file still exists
+  if [ -f $file_out ] ; then 
+     # if it exists jump to next date 
+     echo 'Le fichier '$file_out' existe déjà' >> script_OC-CCI_DL_from_CMEMS.log
+  else
+    # else we download it 
+    #--- Downloading comand ---#
+    # this command download from "database$field" from surface to bottom ("-z 0.494 -Z 5727.9171")
+    # for the variable u, v, T, S and ssh ("-v v -v u -v salinity -v ssh -v temperature")
+    # you may want to change some of those option if needed.
+   python -m motu-client --user $usr --pwd $pass --motu http://my.cmems-du.eu/motu-web/Motu --service-id OCEANCOLOUR_MED_CHL_L4_REP_OBSERVATIONS_009_078-TDS --product-id dataset-oc-med-chl-multi_cci-l4-chl_1km_monthly-rep-v02 -x $Lon_min -X $Lon_max -y $Lat_min -Y $Lat_max -t "$date_file $hour1" -T "$date_file $hour2" -v CHL -v CHL_count -v CHL_error --out-dir '/home/dosa/MON_ENV_PYTHON/DL_OC-CCI_CMEMS/.' --out-name $file_out
+
+#
+    echo "fichier "$file_out" transféré" 
+    echo ""
+    echo ""
+
+  fi 
+
+done
+
+echo "fin de transfert"
+
